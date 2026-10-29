@@ -26,17 +26,17 @@ public class LoanServiceDemo5Test {
     private final Member ada = new Member("m1", "Ada", "ada@example.com");
     private final Book hobbit = new Book("978-0261103344", "The Hobbit", true);
 
-    private final BookRepository books = mock(BookRepository.class);
-    private final MemberRepository members = mock(MemberRepository.class);
-    private final EmailService email = mock(EmailService.class);
+    private final BookRepository mockBookRepository = mock(BookRepository.class);
+    private final MemberRepository mockMemberRepository = mock(MemberRepository.class);
+    private final EmailService mockEmailService = mock(EmailService.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-03-02T10:00:00Z"), ZoneOffset.UTC);
 
-    private final LoanService loanService = new LoanService(books, members, email, clock);
+    private final LoanService loanService = new LoanService(mockBookRepository, mockMemberRepository, mockEmailService, clock);
 
     @Test
     void savedBookIsMarkedUnavailable() {
-        when(members.findById("m1")).thenReturn(Optional.of(ada));
-        when(books.findByIsbn("978-0261103344")).thenReturn(Optional.of(hobbit));
+        when(mockMemberRepository.findById("m1")).thenReturn(Optional.of(ada));
+        when(mockBookRepository.findByIsbn("978-0261103344")).thenReturn(Optional.of(hobbit));
 
         loanService.borrowBook("m1", "978-0261103344");
 
@@ -48,7 +48,7 @@ public class LoanServiceDemo5Test {
         //How can it capture a call that already happened? A mock records EVERY call made to it, like CCTV.
         //verify() runs AFTER borrowBook() and looks back through that recording - capture() just copies the argument out of it.
         ArgumentCaptor<Book> savedBook = ArgumentCaptor.forClass(Book.class);
-        verify(books).save(savedBook.capture());
+        verify(mockBookRepository).save(savedBook.capture());
         assertThat(savedBook.getValue().available()).isFalse();
         assertThat(savedBook.getValue().isbn()).isEqualTo("978-0261103344");
         assertThat(savedBook.getValue().title()).isEqualTo("The Hobbit");
@@ -58,13 +58,13 @@ public class LoanServiceDemo5Test {
     //Capturing the body lets us check just the facts that matter.
     @Test
     void confirmationEmailMentionsTheTitleAndDueDate() {
-        when(members.findById("m1")).thenReturn(Optional.of(ada));
-        when(books.findByIsbn("978-0261103344")).thenReturn(Optional.of(hobbit));
+        when(mockMemberRepository.findById("m1")).thenReturn(Optional.of(ada));
+        when(mockBookRepository.findByIsbn("978-0261103344")).thenReturn(Optional.of(hobbit));
 
         loanService.borrowBook("m1", "978-0261103344");
 
         ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
-        verify(email).send(eq("ada@example.com"), anyString(), body.capture());
+        verify(mockEmailService).send(eq("ada@example.com"), anyString(), body.capture());
         assertThat(body.getValue())
                 .contains("The Hobbit")
                 .contains("2026-03-16");

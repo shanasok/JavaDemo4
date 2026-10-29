@@ -40,11 +40,11 @@ public class LoanServiceDemo6Test {
     //Try removing @ExtendWith above: the fields stay null and every test fails with a NullPointerException.
     //The fields can't be final, because Mockito fills them in after the test object is created.
     @Mock
-    private BookRepository books;
+    private BookRepository mockBookRepository;
     @Mock
-    private MemberRepository members;
+    private MemberRepository mockMemberRepository;
     @Mock
-    private EmailService email;
+    private EmailService mockEmailService;
     @Captor
     private ArgumentCaptor<String> body;
 
@@ -55,13 +55,13 @@ public class LoanServiceDemo6Test {
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(Instant.parse("2026-03-02T10:00:00Z"), ZoneOffset.UTC);
-        loanService = new LoanService(books, members, email, clock);
+        loanService = new LoanService(mockBookRepository, mockMemberRepository, mockEmailService, clock);
     }
 
     @Test
     void borrowingAnAvailableBookReturnsALoanDueInTwoWeeks() {
-        when(members.findById("m1")).thenReturn(Optional.of(ada));
-        when(books.findByIsbn("978-0261103344")).thenReturn(Optional.of(hobbit));
+        when(mockMemberRepository.findById("m1")).thenReturn(Optional.of(ada));
+        when(mockBookRepository.findByIsbn("978-0261103344")).thenReturn(Optional.of(hobbit));
 
         Loan loan = loanService.borrowBook("m1", "978-0261103344");
 
@@ -72,24 +72,24 @@ public class LoanServiceDemo6Test {
     //It fails with UnnecessaryStubbingException - LoanService throws before it ever looks up the book.
     @Test
     void noEmailIsSentForAnUnknownMember() {
-        //when(books.findByIsbn("978-0261103344")).thenReturn(Optional.of(hobbit));
+        //when(mockBookRepository.findByIsbn("978-0261103344")).thenReturn(Optional.of(hobbit));
 
         assertThatThrownBy(() -> loanService.borrowBook("m1", "978-0261103344"))
                 .isInstanceOf(IllegalArgumentException.class);
 
-        verify(email, never()).send(any(), any(), any());
+        verify(mockEmailService, never()).send(any(), any(), any());
     }
 
     @Test
     void confirmationEmailMentionsTheTitleAndDueDate() {
-        when(members.findById("m1")).thenReturn(Optional.of(ada));
-        when(books.findByIsbn("978-0261103344")).thenReturn(Optional.of(hobbit));
+        when(mockMemberRepository.findById("m1")).thenReturn(Optional.of(ada));
+        when(mockBookRepository.findByIsbn("978-0261103344")).thenReturn(Optional.of(hobbit));
 
         loanService.borrowBook("m1", "978-0261103344");
 
         //body.capture() doesn't check the third parameter - like anyString(), it accepts anything, but it also SAVES the value.
         //The real check on the body happens below, with assertThat(body.getValue()).
-        verify(email).send(eq("ada@example.com"), anyString(), body.capture());
+        verify(mockEmailService).send(eq("ada@example.com"), anyString(), body.capture());
         assertThat(body.getValue())
                 .contains("The Hobbit")
                 .contains("2026-03-16");

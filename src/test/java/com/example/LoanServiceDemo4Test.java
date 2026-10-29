@@ -29,16 +29,16 @@ public class LoanServiceDemo4Test {
     private final Book hobbit = new Book("978-0261103344", "The Hobbit", true);
     private final Book hobbitOnLoan = new Book("978-0261103344", "The Hobbit", false);
 
-    private final BookRepository books = mock(BookRepository.class);
-    private final MemberRepository members = mock(MemberRepository.class);
-    private final EmailService email = mock(EmailService.class);
+    private final BookRepository mockBookRepository = mock(BookRepository.class);
+    private final MemberRepository mockMemberRepository = mock(MemberRepository.class);
+    private final EmailService mockEmailService = mock(EmailService.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-03-02T10:00:00Z"), ZoneOffset.UTC);
 
-    private final LoanService loanService = new LoanService(books, members, email, clock);
+    private final LoanService loanService = new LoanService(mockBookRepository, mockMemberRepository, mockEmailService, clock);
 
     @Test
     void unknownMemberIsRejected() {
-        when(members.findById("m1")).thenReturn(Optional.empty());
+        when(mockMemberRepository.findById("m1")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> loanService.borrowBook("m1", "978-0261103344"))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -47,8 +47,8 @@ public class LoanServiceDemo4Test {
 
     @Test
     void unknownBookIsRejected() {
-        when(members.findById("m1")).thenReturn(Optional.of(ada));
-        when(books.findByIsbn("978-0261103344")).thenReturn(Optional.empty());
+        when(mockMemberRepository.findById("m1")).thenReturn(Optional.of(ada));
+        when(mockBookRepository.findByIsbn("978-0261103344")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> loanService.borrowBook("m1", "978-0261103344"))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -57,8 +57,8 @@ public class LoanServiceDemo4Test {
 
     @Test
     void bookAlreadyOnLoanIsRejected() {
-        when(members.findById("m1")).thenReturn(Optional.of(ada));
-        when(books.findByIsbn("978-0261103344")).thenReturn(Optional.of(hobbitOnLoan));
+        when(mockMemberRepository.findById("m1")).thenReturn(Optional.of(ada));
+        when(mockBookRepository.findByIsbn("978-0261103344")).thenReturn(Optional.of(hobbitOnLoan));
 
         assertThatThrownBy(() -> loanService.borrowBook("m1", "978-0261103344"))
                 .isInstanceOf(IllegalStateException.class)
@@ -76,28 +76,28 @@ public class LoanServiceDemo4Test {
     //verifyNoInteractions checks that NO method at all was called on the email mock.
     @Test
     void unavailableBookIsNotSavedOrEmailed() {
-        when(members.findById("m1")).thenReturn(Optional.of(ada));
-        when(books.findByIsbn("978-0261103344")).thenReturn(Optional.of(hobbitOnLoan));
+        when(mockMemberRepository.findById("m1")).thenReturn(Optional.of(ada));
+        when(mockBookRepository.findByIsbn("978-0261103344")).thenReturn(Optional.of(hobbitOnLoan));
 
         assertThatThrownBy(() -> loanService.borrowBook("m1", "978-0261103344"))
                 .isInstanceOf(IllegalStateException.class);
 
-        verify(books, never()).save(any());
-        verifyNoInteractions(email);
+        verify(mockBookRepository, never()).save(any());
+        verifyNoInteractions(mockEmailService);
     }
 
     //Making a dependency throw. For a method that RETURNS something you'd write when(...).thenThrow(...),
-    //but send() is void, and when(email.send(...)) doesn't compile - you can't pass "nothing" to when().
+    //but send() is void, and when(mockEmailService.send(...)) doesn't compile - you can't pass "nothing" to when().
     //So for void methods the order flips: doThrow(...).when(mock).method(...).
     @Test
     void loanStillSucceedsWhenEmailFails() {
-        when(members.findById("m1")).thenReturn(Optional.of(ada));
-        when(books.findByIsbn("978-0261103344")).thenReturn(Optional.of(hobbit));
-        doThrow(new RuntimeException("Mail server down")).when(email).send(any(), any(), any());
+        when(mockMemberRepository.findById("m1")).thenReturn(Optional.of(ada));
+        when(mockBookRepository.findByIsbn("978-0261103344")).thenReturn(Optional.of(hobbit));
+        doThrow(new RuntimeException("Mail server down")).when(mockEmailService).send(any(), any(), any());
 
         Loan loan = loanService.borrowBook("m1", "978-0261103344");
 
         assertThat(loan.book().title()).isEqualTo("The Hobbit");
-        verify(books).save(any());
+        verify(mockBookRepository).save(any());
     }
 }

@@ -23,22 +23,24 @@ public class LoanServiceDemo2Test {
     private final Member ada = new Member("m1", "Ada", "ada@example.com");
     private final Book hobbit = new Book("978-0261103344", "The Hobbit", true);
 
-    private final BookRepository books = mock(BookRepository.class);
-    private final MemberRepository members = mock(MemberRepository.class);
-    private final EmailService email = mock(EmailService.class);
+    private final BookRepository mockBookRepository = mock(BookRepository.class);
+    private final MemberRepository mockMemberRepository = mock(MemberRepository.class);
+    private final EmailService mockEmailService = mock(EmailService.class);
     //Notice we do NOT mock the Clock. Don't mock what you can just create:
     //Clock.fixed gives us a real Clock with a known date, which is simpler and clearer than a mock.
     private final Clock clock = Clock.fixed(Instant.parse("2026-03-02T10:00:00Z"), ZoneOffset.UTC);
 
-    private final LoanService loanService = new LoanService(books, members, email, clock);
+    private final LoanService loanService = new LoanService(mockBookRepository, mockMemberRepository, mockEmailService, clock);
 
     //Arrange: stub the two lookups. Act: borrow. Assert: check the returned Loan.
     //The EmailService mock needs no setup at all - by default a mock's void methods just do nothing.
     @Test
     void borrowingAnAvailableBookReturnsALoanDueInTwoWeeks() {
-        when(members.findById("m1")).thenReturn(Optional.of(ada));
-        when(books.findByIsbn("978-0261103344")).thenReturn(Optional.of(hobbit));
+        //Setting up your mock situation called stubbing
+        when(mockMemberRepository.findById("m1")).thenReturn(Optional.of(ada));
+        when(mockBookRepository.findByIsbn("978-0261103344")).thenReturn(Optional.of(hobbit));
 
+        //Call the method under test
         Loan loan = loanService.borrowBook("m1", "978-0261103344");
 
         assertThat(loan.member()).isEqualTo(ada);
@@ -50,7 +52,7 @@ public class LoanServiceDemo2Test {
     //an empty Optional, an empty list, null for other objects, 0 for numbers, false for booleans.
     @Test
     void unstubbedMethodsReturnEmptyDefaults() {
-        assertThat(books.findByIsbn("978-0261103344")).isEmpty();
-        assertThat(members.findById("m1")).isEmpty();
+        assertThat(mockBookRepository.findByIsbn("978-0261103344")).isEmpty();
+        assertThat(mockMemberRepository.findById("m1")).isEmpty();
     }
 }

@@ -79,7 +79,7 @@ them on its own.
   `verifyNoInteractions()` that nothing was saved or sent (Demo 4).
 - **`void` methods are stubbed the other way round**: `doThrow(...).when(mock).send(...)`, because
   `when(mock.send(...))` won't compile (Demo 4).
-- **If one argument uses a matcher, they all must**: `verify(email).send(eq("ada@example.com"), anyString(), anyString())` (Demo 3).
+- **If one argument uses a matcher, they all must**: `verify(mockEmailService).send(eq("ada@example.com"), anyString(), anyString())` (Demo 3).
 - **Strict stubs**: with `MockitoExtension`, a stub the test never uses fails the test (Demo 6).
 
 ## Exercises: try it yourself
